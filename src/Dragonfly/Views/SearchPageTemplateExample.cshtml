@@ -1,0 +1,39 @@
+﻿
+@inherits UmbracoTemplatePage
+@{
+    Layout = "Master.cshtml";
+}
+
+<section class="block">
+    <div class="grid-container">
+        <div class="grid-x grid-padding-x">
+            <div class="cell">
+                <div class="grid-x grid-padding-x grid-padding-y">
+                    @Umbraco.RenderMacro("SearchForm", new {
+                        Layout = "Main"
+                    })
+                </div>
+            </div> 
+
+            <div class="cell">
+                <div class="grid-x grid-padding-x grid-padding-y">
+                    <div class="cell">
+                        @Umbraco.RenderMacro("FulltextSearchResults", new {
+                            RootNodes = 0,
+                            QueryType="MultiRelevance",
+                            Fuzziness = 0.8,
+                            UseWildcards = 0,
+                            TitleProperties = "",
+                            BodyProperties = "",
+                            SummaryProperties = "",
+                            SummaryLength = 500,
+                            TitleLinkProperties = "",
+                            DisableContextHighlighting = 0,
+                            PageLength = 10
+                        })
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

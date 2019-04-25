@@ -1,0 +1,379 @@
+@using System.Xml.XPath
+@using Dragonfly.FullTextSearch.Extensions
+@using Dragonfly.Umbraco7Helpers
+@using Dragonfly.FullTextSearch.Helpers
+@using Dragonfly.FullTextSearch.Models
+@using Dragonfly.NetModels
+@using Umbraco.Core.Logging
+@using Umbraco.Core.Models
+@using Umbraco.Web.Macros
+
+@inherits Umbraco.Web.Macros.PartialViewMacroPage
+
+@*
+    This Razor file sets up queries and sends them off to FullTextSearch's
+    Razor helpers.
+
+    Feel free to modify any part of it to your own needs. HTML is near
+    the bottom in a couple of templates.
+
+        Example Usage:
+        --------------
+        @Umbraco.RenderMacro("FulltextSearchResults", new {
+            RootNodes = 0,
+            QueryType="MultiRelevance",
+            Fuzziness = 0.8,
+            UseWildcards = 0,
+            TitleProperties = "ignore",
+            BodyProperties = "",
+            SummaryProperties = "",
+            SummaryLength = 300,
+            TitleLinkProperties = "",
+            DisableContextHighlighting = 0,
+            PageLength = 20
+            })
+
+        Expected Parameters:
+        -------------------
+        RootNodes (MultiContentPicker) : Root Nodes - Only nodes which have one of these nodes as a parent will be returned.
+                                         Default is to search all nodes
+                                        ___________________________
+                                        Comma separated list of root node ids TODO: Verify that this is true?
+
+        QueryType (Textbox)           : Query Type - Type of search to perform.
+                                        Possible values are: MultiRelevance, MultiAnd, SimpleOr, AsEntered
+                                        ___________________________
+    MultiRelevance ->
+      The default.
+      The index is searched for, in order of decreasing relevance
+        1) the exact phrase entered in any of the title properties
+        2) any of the terms entered in any of the title properties
+        3) a fuzzy match for any of the terms entered in any of the title properties
+        4) the exact phrase entered in any of the body properties
+        5) any of the terms entered in any of the body properties
+        6) a fuzzy match for any of the terms entered in any of the body properties
+
+    MultiAnd ->
+      Similar to MultiRelevance, but requires all terms be present
+
+    SimpleOr->
+      Similar to MultiRelevance again, but the exact phrase does not
+      get boosted, we just search for any term
+
+    AsEntered->
+      Search for the exact phrase entered, if more than one term is present
+
+    Fuzziness (Textbox)     :   Fuzzy Matching Level - How close the search term must be to a term in the index
+                                (zero to one : 1.0 = exact matching) (Default is 0.8)
+                                ___________________________
+                                Lucene Queries can be "fuzzy" or exact.
+                                A fuzzy query will match close variations of the search terms, such as
+                                plurals etc.
+                                Note that fuzzy matching is slow compared to exact or even wildcard matching, if you're having performance issues this is the first thing
+                                to switch off.
+
+    UseWildcards (Checkbox) :   Use Wildcards - Add a wildcard '*' to the end of every search term to make it match
+                                anything starting with the search term. (Fuzziness is set to 1.0 if enabled.)
+                                ___________________________
+                                This is a slightly faster, but less accurate way of achieving the same ends as fuzzy matching.
+                                Defaults to off
+
+    TitleProperties (Textarea) : Title Properties - Comma separated list of properties that will have their relevance boosted
+                                by a factor of 10 (Defaults to nodeName - Set to "ignore" not to boost titles)
+
+    BodyProperties (Textarea) : Body Properties - Comma separated list of properties that are part of the page body.
+                                (Leave blank to use the full text index only)
+                                ___________________________
+                                These properties and the TitleProperties will be searched.
+
+    SummaryProperties (Textarea) :  Summary Properties - Comma separated list of properties to use for the Summary, in order of preference.
+                                    (If Blank, defaults to Full Text)
+                                    ___________________________
+                                    All properties selected must be in the index, because that's
+                                    where we pull the data from. TODO: Verify that this is true?
+
+    SummaryLength (Numeric) :   Summary Text Length (Default is 300)
+                                ___________________________
+    The maximum number of characters to show in the summary.
+
+    TitleLinkProperties (Textarea) :    Title Link Properties - Comma separated list of properties to use for the Title Link,
+                                        in order of preference. (If Blank, defaults to TitleProperties, or if that isn't set, nodeName)
+
+    DisableContextHighlighting (Checkbox) : Disable Context Highlighting - You may wish to do this if you are having
+                                            performance issues as context highlighting is (relatively) slow.
+                                            ___________________________
+                                            Set this to disable context highlighting in the summary/title.
+
+    PageLength (Numeric)                  :  Page Length - Number of results on a page. (Default is 20. Set to zero to disable paging)
+*@
+
+@{
+    try
+    {
+        /* Constants */
+        const string fullTextIndexName = "FullText";
+ 		//These constants need to match what is in "SearchForm" macro partial
+        const string getPostTerms = "query";
+        const string getPostPage = "page";
+        const string getRootNode = "section";
+        //const int numNumbers = 15;
+
+        //var home = Model.Site;
+        var currentPage = Umbraco.AssignedContentItem;
+        var searchPage = Umbraco.AssignedContentItem;//SiteHelpers.GetSearchPage(currentPage);
+
+        /* Query String : Paging */
+        var qsPostPage = umbraco.library.RequestQueryString(getPostPage);
+        var thisPageNumber = !String.IsNullOrEmpty(qsPostPage) ? int.Parse(qsPostPage) : 1;
+
+        /* Query String : Terms */
+        var searchTerms = String.IsNullOrEmpty(umbraco.library.RequestQueryString(getPostTerms)) ? (String.IsNullOrEmpty(umbraco.library.Request(getPostTerms)) ? "" : umbraco.library.Request(getPostTerms)) : umbraco.library.RequestQueryString(getPostTerms);
+        var searchTermsUrlEncoded = umbraco.library.UrlEncode(searchTerms);
+
+        /* Query String : RootNode (section) */
+        var qsRootNode = umbraco.library.RequestQueryString(getRootNode);
+        var rootNodeQs = String.IsNullOrEmpty(qsRootNode) ? 0 : (Dragonfly.NetHelpers.Strings.IsNumeric(qsRootNode) ? Int32.Parse(qsRootNode) : 0);
+        
+
+        /* Macro Parameters */
+        var titleProperties = Macros.GetSafeParamString(Model.MacroParameters, "TitleProperties", "nodeName");
+        if (titleProperties == "ignore")
+        {
+            titleProperties = "";
+        }
+        var bodyProperties = Macros.GetSafeParamString(Model.MacroParameters, "BodyProperties", fullTextIndexName);
+        var summaryProperties = Macros.GetSafeParamString(Model.MacroParameters, "SummaryProperties", fullTextIndexName);
+        var titleLinkProperties = Macros.GetSafeParamString(Model.MacroParameters, "TitleLinkProperties", "nodeName");
+        var disableContextHighlighting = Macros.GetSafeParamBool(Model.MacroParameters, "DisableContextHighlighting", false);
+        var contextHighlighting = disableContextHighlighting ? 0 : 1;
+        var queryType = Macros.GetSafeParamString(Model.MacroParameters, "QueryType", "MultiRelevance");
+        var fuzziness = Macros.GetSafeParamString(Model.MacroParameters, "Fuzziness", "0.8");
+        var useWildcards = Macros.GetSafeParamBool(Model.MacroParameters, "UseWildcards", false);
+        var useWildcardsInt = useWildcards ? 1 : 0;
+
+        var summaryLength = Macros.GetSafeParamInt(Model.MacroParameters, "SummaryLength", 300);
+        //if (summaryLength <= 0)
+        //{
+        //    summaryLength = 300;
+        //}
+
+        var disablePaging = false;
+        var pageLength = Macros.GetSafeParamInt(Model.MacroParameters, "PageLength", -1);
+        if (pageLength == 0)
+        {
+            disablePaging = true;
+        }
+        else if (pageLength == -1)
+        {
+            //blank, use default
+            pageLength = 20;
+        }
+
+        var rootNodesParam = Macros.GetSafeParamMultiContent(Model.MacroParameters, "RootNodes", Umbraco);
+
+        /* Calculate Final Root Nodes (query string overrides macro options)*/
+        var rootNodesCSV = "";
+        var sectionName = "";
+
+        if (rootNodeQs != 0)
+        {
+            rootNodesCSV = rootNodeQs.ToString();
+            sectionName = Umbraco.TypedContent(rootNodeQs).Name;
+        }
+        else
+        {
+            if (rootNodesParam.Any())
+            {
+                var ids = rootNodesParam.Select(n => n.Id);
+                rootNodesCSV = String.Join(",", ids);
+            }
+        }
+
+        /* Run Search */
+        var results = SearchHelper.Search(queryType, searchTerms, titleProperties, bodyProperties, rootNodesCSV, titleLinkProperties, summaryProperties, contextHighlighting, summaryLength, 0, pageLength, fuzziness, useWildcardsInt);
+
+        IEnumerable<SearchResultPage> matchingResultsPage;
+
+
+
+        @*//Front-End Rendering Starts HERE*@
+
+        <div class="search-results">
+
+            @if (results.IsError)
+            {
+                if (results.ErrorCode != "NoTerms")
+                {
+            @RenderResultsHeader(sectionName, searchTerms)
+
+                var errorDictKey = string.Format("SearchError{0}", results.ErrorCode);
+                <p class="search-error">@Dragonfly.Umbraco7Helpers.Dictionary.GetDictionaryOrPlaceholder(errorDictKey)</p>
+            }
+            }
+            else
+            {
+                matchingResultsPage = results.Pages.Where(p => p.PageNum == thisPageNumber).ToList();
+
+                if (matchingResultsPage.Any())
+                {
+            @RenderResultsHeader(sectionName, searchTerms)
+
+                    var thisPageResults = matchingResultsPage.First();
+                    @FormatResultsCountMsg(thisPageResults.FirstResult, thisPageResults.LastResult, results.TotalResults)
+
+                    foreach (var result in thisPageResults.Results)
+                    {
+                        var resultNode = Umbraco.TypedContent(result.NodeId);
+
+                        <div class="search-result">
+                            <a href="@resultNode.Url">
+                                <h4>@Html.Raw(result.Title)</h4>
+                            </a>
+                    @FormatResultSummary(result, resultNode, summaryLength)
+                            <a href="@resultNode.Url" class="small">@resultNode.Url</a>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="search-error">@Dragonfly.Umbraco7Helpers.Dictionary.GetDictionaryOrPlaceholder("SearchErrorNoPage")</p>
+                }
+
+                if (results.NumOfPages > 1)
+            {
+                    var baseUrl = string.Format("?{1}={2}", currentPage.Url, getPostTerms, searchTermsUrlEncoded);
+                    var pagerModel = new PagerModel(baseUrl, pageLength, thisPageNumber, results.NumOfPages, getPostPage);
+                    
+					//Html.RenderPartial("~/Views/Partials/Pager.cshtml", pagerModel);
+                    @CustomPagination(results.NumOfPages, thisPageNumber, getPostTerms, searchTermsUrlEncoded, getPostPage, pageLength)
+            }
+
+            <p class="fulltextsearch-info small text-center">
+                @{
+                        var dictSearchTimeSummary = Dragonfly.Umbraco7Helpers.Dictionary.GetDictionaryOrPlaceholder("SearchTimeSummary"); //"Search took {0} seconds"
+                        var searchTimeSummary = String.Format(dictSearchTimeSummary, results.TimeTakenSeconds);
+                            var swinfo = results.SWInfo;
+                }
+                        @searchTimeSummary
+                        @Html.Raw(Umbraco.If(swinfo != null, swinfo, ""))
+                    </p>
+}
+        </div>
+    }
+    catch (Exception e)
+    {
+        var msg = string.Format("'FulltextSearchResults' Macro Error on page '{0}' [{1}] {2}", this.CurrentPage.Name, this.CurrentPage.Id, this.CurrentPage.UrlAbsolute());
+        LogHelper.Error<PartialViewMacroPage>(msg, e);
+    }
+}
+
+@helper RenderResultsHeader(string SectionName, string SearchTerms)
+{
+    //"Results for '{0}'"
+    var dictSearchResultsFor = Dragonfly.Umbraco7Helpers.Dictionary.GetDictionaryOrPlaceholder("SearchResultsFor");
+
+    <h2>@Html.Raw(string.Format(dictSearchResultsFor, SearchTerms))</h2>
+    if (SectionName != "")
+    {
+        <h3>Searching in "@SectionName"</h3>
+    }
+}
+
+@helper FormatResultsCountMsg(int FirstResult, int LastResult, int TotalResults)
+            {
+    //"Showing results {FirstResult} through {LastResult} of {TotalResults}"
+    var dictionaryText = Dragonfly.Umbraco7Helpers.Dictionary.GetDictionaryOrPlaceholder("SearchResultsCountMsg");
+
+    dictionaryText = dictionaryText.Replace("{FirstResult}", FirstResult.ToString());
+    dictionaryText = dictionaryText.Replace("{LastResult}", LastResult.ToString());
+    dictionaryText = dictionaryText.Replace("{TotalResults}", TotalResults.ToString());
+
+<p class="results-count">@Html.Raw(dictionaryText)</p>
+            }
+
+@helper FormatResultSummary(FullTextResult Result, IPublishedContent ResultNode, int SummaryLength)
+            {
+    var nodeShortDesc = SiteHelpers.GetPageShortDescription(ResultNode);
+
+    var cssClass = "summary-text";
+
+    if (nodeShortDesc.ToString() != "")
+    {
+        <p class="@cssClass">@nodeShortDesc</p>
+            }
+    else if (Result.Summary != "Read More")
+    {
+        <p class="@cssClass>@Html.Raw(Result.Summary) &hellip;</p>
+                }
+    else
+    {
+        <p class="@cssClass>@Html.Raw(Dragonfly.NetHelpers.Strings.TruncateAtWord(Result.Fields["FullText"], SummaryLength))</p>
+    }
+}
+
+
+@helper CustomPagination(int numPages, int pageNumber, string getPostTerms, string searchTermsUrlEncoded, string getPostPage, int numNumbers)
+{
+    var langPrevious = Dragonfly.Umbraco7Helpers.Dictionary.GetDictionaryOrPlaceholder("SearchNavPrevious");
+    var langNext = Dragonfly.Umbraco7Helpers.Dictionary.GetDictionaryOrPlaceholder("SearchNavNext");
+    var startPage = (numNumbers / 2);
+    startPage = (pageNumber < startPage + 1) ? 1 : pageNumber - startPage;
+
+
+<nav aria-label="Pagination">
+    <ul class="pagination text-center">
+        @if (pageNumber > 1)
+        {
+            <li class="pagination-previous">
+                <a href="?@getPostTerms=@searchTermsUrlEncoded&@getPostPage=@(pageNumber - 1)">@langPrevious</a>
+            </li>
+        }
+        else
+        {
+            <li class="pagination-previous disabled">
+                <a>@langPrevious</a>
+            </li>
+        }
+        @for (var curPage = startPage; curPage <= numPages && curPage < startPage + numNumbers; curPage++)
+        {
+            if (curPage == pageNumber)
+            {
+                <li class="current">@curPage</li>
+            }
+            else
+            {
+                <li>
+                    <a href="?@getPostTerms=@searchTermsUrlEncoded&@getPostPage=@curPage">@curPage</a>
+                </li>
+            }
+        }
+        @if (pageNumber < numPages)
+        {
+            <li class="pagination-next">
+                <a href="?@getPostTerms=@searchTermsUrlEncoded&@getPostPage=@(pageNumber + 1)">@langNext</a>
+            </li>
+        }
+        else
+        {
+            <li class="pagination-next disabled">
+                <a>@langNext</a>
+            </li>
+        }
+
+    </ul>
+</nav>
+
+}
+
+@helper ShowErrors(XPathNodeIterator results, string searchTerms, int pageNumber)
+{
+    var errorType = (string)results.Current.Evaluate("string(/error/@type)");
+    var error = (string)results.Current.Evaluate("string(/error)");
+    var dictErrorType = string.Format("SearchError{0}", errorType);
+    var dictionaryError = String.IsNullOrEmpty(errorType) ? "" : String.Format(Dragonfly.Umbraco7Helpers.Dictionary.GetDictionaryOrPlaceholder(dictErrorType), searchTerms, pageNumber);
+    var errormsg = String.IsNullOrEmpty(dictionaryError) ? (String.IsNullOrEmpty(error) ? Dragonfly.Umbraco7Helpers.Dictionary.GetDictionaryOrPlaceholder("SearchErrorUnknown") : error) : dictionaryError;
+
+    <div class="fulltextsearch_error">
+        <p>@errormsg</p>
+    </div>
+}

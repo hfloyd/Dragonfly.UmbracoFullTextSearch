@@ -1,0 +1,93 @@
+﻿@using Dragonfly.Umbraco7Helpers
+@using Umbraco.Core.Logging
+@using Umbraco.Web.Macros
+
+@inherits Umbraco.Web.Macros.PartialViewMacroPage
+
+@*
+    Expected Parameters:
+    -------------------
+    CurrentPageRootNode (True/False) :  Use current page for Search Root Node (if section-specific)
+                                        Pass root node along in query string. Useful when passing
+                                        section-specific search to a general search results page.
+
+    CustomSearchRootNode (Content Picker)   : Custom Search Root Node (if section-specific), otherwise, leave blank for result-page defaults.
+	
+	Layout (Textbox) 	: Layout (Header or Main)
+ 
+   	Example Usage:
+    --------------
+    @Umbraco.RenderMacro("SearchForm", new {
+                        CurrentPageRootNode=0,
+                        CustomSearchRootNode = "",
+						Layout = "Header"
+                    })
+*@
+
+@{
+    try
+    {
+        //These constants need to match what is in "FulltextSearchResults" macro partial
+        const string getPostTerms = "query";
+        const string getRootNode = "section";
+
+        //Macro Params
+        var currentPageRootNodeParam = Macros.GetSafeParamBool(Model.MacroParameters, "CurrentPageRootNode", false);
+        var customSearchRootNodeParam = Macros.GetSafeParamContent(Model.MacroParameters, "CustomSearchRootNode", Umbraco);
+    	var paramLayout = Macros.GetSafeParamString(Model.MacroParameters, "Layout", "Main");
+
+        //var home = Model.Site;
+        var currentPage = Umbraco.AssignedContentItem;
+        var searchPage = Umbraco.AssignedContentItem; //SiteHelpers.GetSearchPage(currentPage);
+
+        var searchTerms = String.IsNullOrEmpty(umbraco.library.RequestQueryString(getPostTerms)) ? (String.IsNullOrEmpty(umbraco.library.Request(getPostTerms)) ? "" : umbraco.library.Request(getPostTerms)) : umbraco.library.RequestQueryString(getPostTerms);
+        var searchString = Umbraco.GetDictionaryValue("SearchButton");
+
+        //RootNode for submission?
+        var rootNode = 0;
+        if (currentPageRootNodeParam)
+        {
+            rootNode = currentPage.Id;
+        }
+        else if (customSearchRootNodeParam != null)
+        {
+            rootNode = customSearchRootNodeParam.Id;
+        }
+
+@if (paramLayout == "Header")
+{
+        <form action="@searchPage.Url" method="get">
+            <div class="input-group">
+                @if (rootNode != 0)
+                {
+                    <input type="hidden" name="@getRootNode" value="@rootNode" class="input-group-field">
+                }
+                <input type="text" name="@getPostTerms" placeholder="Search" value="@searchTerms" class="input-group-field">
+                <div class="input-group-button">
+                    <input type="submit" tabindex="-1" value="@searchString" class="button">
+                </div>
+            </div>
+        </form>
+}
+else
+{
+        <form action="@searchPage.Url" method="get">
+            <div class="input-group">
+                @if (rootNode != 0)
+                {
+                    <input type="hidden" name="@getRootNode" value="@rootNode" class="input-group-field">
+                }
+                <input type="text" name="@getPostTerms" placeholder="Search" value="@searchTerms" class="input-group-field">
+                <div class="input-group-button">
+                    <input type="submit" tabindex="-1" value="@searchString" class="button">
+                </div>
+            </div>
+        </form>
+}
+    }
+    catch (Exception e)
+    {
+        var msg = string.Format("'SearchForm' Macro Error on page '{0}' [{1}] {2}", this.CurrentPage.Name, this.CurrentPage.Id, this.CurrentPage.UrlAbsolute());
+        LogHelper.Error<PartialViewMacroPage>(msg, e);
+    }
+}

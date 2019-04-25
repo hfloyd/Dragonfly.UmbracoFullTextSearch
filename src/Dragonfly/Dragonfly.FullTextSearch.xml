@@ -1,0 +1,1092 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Dragonfly.FullTextSearch</name>
+    </assembly>
+    <members>
+        <member name="M:Dragonfly.FullTextSearch.Admin.AdminActions.RebuildFullTextIndex">
+            <summary>
+            Rebuild the entire full text index. Re-render nodes if necessary
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Admin.AdminActions.RebuildIndex(System.String)">
+            <summary>
+            rebuild the entire index with supplied name
+            </summary>
+            <param name="Index"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Admin.AdminActions.ReindexAllFullTextNodes">
+            <summary>
+            Re-index all nodes in the full text index
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Admin.AdminActions.ReindexFullTextNodesAndChildren(System.Int32[])">
+            <summary>
+            Re-index all supplied nodes in the full text index, and all their descendants
+            </summary>
+            <param name="Nodes"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Admin.AdminActions.ReindexFullTextNodes(System.Collections.Generic.List{System.Int32})">
+            <summary>
+            reindex the supplied list of full text nodes
+            </summary>
+            <param name="Nodes"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Admin.AdminActions.ReindexNodes(System.String,System.Collections.Generic.List{System.Int32})">
+            <summary>
+            reindex the supplied list of nodes in the given index
+            </summary>
+            <param name="Index"></param>
+            <param name="Nodes"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Admin.AdminActions.ReIndexNode(Examine.Providers.BaseIndexProvider,Umbraco.Core.Models.IContent)">
+            <summary>
+            reindex this single document in the supplied index
+            </summary>
+            <param name="Indexer"></param>
+            <param name="Content"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Admin.AdminActions.RenderNodeToCache(System.Int32)">
+            <summary>
+            Render single node ID to cache
+            </summary>
+            <param name="NodeId"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Admin.AdminActions.RenderAllNodesToCache">
+            <summary>
+            Render all nodes to cache
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Admin.AdminActions.RenderNodeAndChildrenToCache(System.Int32)">
+            <summary>
+            Render the given node ID and all children to cache
+            </summary>
+            <param name="NodeId"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Admin.AdminActions.RecursiveIndexNodes(Examine.Providers.BaseIndexProvider,Umbraco.Core.Models.IContent)">
+            <summary>
+            Helper function for ReindexAllFullTextNodes
+            </summary>
+            <param name="Indexer"></param>
+            <param name="Content"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Admin.AdminActions.RenderNodeToCache(Umbraco.Core.Models.IContent)">
+            <summary>
+            Render a single document to cache
+            </summary>
+            <param name="Content"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Admin.AdminActions.RenderNodeAndChildrenToCache(Umbraco.Core.Models.IContent)">
+            <summary>
+            Render a document and all it's children to cache
+            </summary>
+            <param name="Content"></param>
+        </member>
+        <member name="T:Dragonfly.FullTextSearch.Config">
+            <summary>
+            Singleton configuration object for FullTextSearch
+            </summary>
+        </member>
+        <member name="P:Dragonfly.FullTextSearch.Config.Instance">
+            <summary>
+            singleton
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Config.GetByKey(System.String)">
+            <summary>
+            Gets the InnerText of a configuration key, to just have a simple string value, but use as you like 
+            </summary>
+            <param name="key">key name</param>
+            <returns>value</returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Config.GetMultiByKey(System.String)">
+            <summary>
+            Get a multi value key
+            </summary>
+            <param name="key">name of the outermost tag</param>
+            <returns>list of strings</returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Config.GetBooleanByKey(System.String)">
+            <summary>
+            Check whether the a given key is set to boolean True/False
+            </summary>
+            <returns>true on enabled</returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Config.GetLuceneFtField">
+            <summary>
+            return the name of the lucene field we fill with the full text
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Config.GetPathPropertyName">
+            <summary>
+            Needs to be kept track of, but not really changed.
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Config.CheckReadConfig">
+            <summary>
+            Check if the config file has been loaded, if not read it into memory
+            </summary>
+            <returns>bool indicating sucessfull/unsucessfull load</returns>
+        </member>
+        <member name="F:Dragonfly.FullTextSearch.EventHandlers.PublishingHandlers.LockObj">
+            <summary>
+            Used for locking
+            </summary>
+        </member>
+        <member name="F:Dragonfly.FullTextSearch.EventHandlers.PublishingHandlers._ran">
+            <summary>
+            Indicates if already run
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.EventHandlers.PublishingHandlers.ContentAfterUpdateDocumentCache(umbraco.cms.businesslogic.web.Document,umbraco.cms.businesslogic.DocumentCacheEventArgs)">
+            <summary>
+            The event this handles fires after a document is published in the back office and the cache is updated.
+            We render out the page and store it's HTML in the database for retrieval by the indexer.
+            </summary>
+            <param name="sender">Document being published</param>
+            <param name="e">Event Arguments</param>
+            <remarks>
+            the indexer thread doesn't always access to a fully initialised umbraco core to do the rendering, 
+            whereas this event always should, hence this method rather than doing both rendering and indexing
+            in the same thread
+            </remarks>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.EventHandlers.PublishingHandlers.CheckConfig">
+            <summary>
+            Check that the config exists and rendering to cache on publish events is enabled
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.EventHandlers.PublishingHandlers.OnApplicationInitialized(Umbraco.Core.UmbracoApplicationBase,Umbraco.Core.ApplicationContext)">
+            <summary>
+            OnApplicationInitialized handler
+            </summary>
+            <param name="UmbracoApplication"></param>
+            <param name="ApplicationContext"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.EventHandlers.PublishingHandlers.OnApplicationStarting(Umbraco.Core.UmbracoApplicationBase,Umbraco.Core.ApplicationContext)">
+            <summary>
+            OnApplicationStarting handler
+            </summary>
+            <param name="UmbracoApplication"></param>
+            <param name="ApplicationContext"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.EventHandlers.PublishingHandlers.OnApplicationStarted(Umbraco.Core.UmbracoApplicationBase,Umbraco.Core.ApplicationContext)">
+            <summary>
+            OnApplicationStarted handler - subscribes to umbraco publishing events to build a database containing current HTML for
+            each page using the umbraco core when publisheventrendering is active
+            </summary>
+            <param name="UmbracoApplication"></param>
+            <param name="ApplicationContext"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.EventHandlers.PublishingHandlers.ContentService_Publishing(Umbraco.Core.Publishing.IPublishingStrategy,Umbraco.Core.Events.PublishEventArgs{Umbraco.Core.Models.IContent})">
+            <summary>
+            Republishing all nodes tends to throw timeouts if you have enough of them. This 
+            should prevent that without modifying the default for the whole site...
+            </summary>
+            <param name="sender"></param>
+            <param name="e"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.EventHandlers.PublishingHandlers.ContentServiceDeleted(Umbraco.Core.Services.IContentService,Umbraco.Core.Events.DeleteEventArgs{Umbraco.Core.Models.IContent})">
+            <summary>
+            Make sure HTML is deleted from storage when the node is deleted
+            </summary>
+            <param name="sender"></param>
+            <param name="e"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.EventHandlers.PublishingHandlers.ContentServiceTrashed(Umbraco.Core.Services.IContentService,Umbraco.Core.Events.MoveEventArgs{Umbraco.Core.Models.IContent})">
+            <summary>
+            Make sure HTML is deleted from storage when the node is moved to trash
+            </summary>
+            <param name="sender"></param>
+            <param name="e"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.EventHandlers.PublishingHandlers.ContentServiceUnPublished(Umbraco.Core.Publishing.IPublishingStrategy,Umbraco.Core.Events.PublishEventArgs{Umbraco.Core.Models.IContent})">
+            <summary>
+            Delete HTML on unpublish
+            </summary>
+            <param name="sender"></param>
+            <param name="e"></param>
+        </member>
+        <member name="T:Dragonfly.FullTextSearch.Helpers.GeneralHelper">
+            <summary>
+            Contains a few helper methods we call from FullTextSearch.xslt
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Helpers.GeneralHelper.DictionaryHelper(System.String)">
+            <summary>
+            All this does is call the umbraco library function GetDictionaryItem
+            </summary>
+            <param name="Key"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Helpers.GeneralHelper.IsIndexingActive">
+            <summary>
+            Check whether the current page is being rendered by the indexer
+            </summary>
+            <returns>true if being indexed</returns>
+        </member>
+        <member name="T:Dragonfly.FullTextSearch.Helpers.XsltSearchHelper">
+            <summary>
+            Retrieve search results as Xml node objects for users to use in their own XSLT
+            </summary>
+        </member>
+        <member name="E:Dragonfly.FullTextSearch.Helpers.XsltSearchHelper.ResultOutput">
+            <summary>
+            Quick and simple static event to allow users to modify search results
+            before they are output
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Helpers.XsltSearchHelper.Search(System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.Int32,System.Int32,System.Int32,System.Int32,System.String,System.Int32)">
+            <summary>
+            Main XSLT Helper Search function, the laundry list of parameters are documented more fully in FullTextSearch.xslt
+            Basically this constructs a search object and a highlighter object from the parameters, then calls another 
+            function to return search results as XML.
+            </summary>
+            <param name="searchType">MultiRelevance, MultiAnd, etc.</param>
+            <param name="searchTerm">The search terms as entered by user</param>
+            <param name="titleProperties">A list of umbraco properties, comma separated, to be searched as the page title</param>
+            <param name="bodyProperties">A list of umbraco properties, comma separated, to be searched as the page body</param>
+            <param name="rootNodes">Return only results under these nodes, set to blank or -1 to search all nodes</param>
+            <param name="titleLinkProperties">Umbraco properties, comma separated, to use in forming the (optionally highlighted) title</param>
+            <param name="summaryProperties">Umbraco properties, comma separated, to use in forming the (optionally highlighted) summary text</param>
+            <param name="useHighlighting">Enable context highlighting(note this can slow things down)</param>
+            <param name="summaryLength">Number of characters in the summary text</param>
+            <param name="pageNumber">Page number of results to return</param>
+            <param name="pageLength">Number of results on each page, zero disables paging and returns all results</param>
+            <param name="fuzzieness">Amount 0-1 to "fuzz" the search, return non exact matches</param>
+            <param name="wildcard">Add wildcard to the end of search term. Doesn't work together with fuzzyness</param>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Helpers.XsltSearchHelper.GetProperties(System.String,System.Double,System.Double,System.Boolean)">
+            <summary>
+            Split up the comma separated string and retun a list of UmbracoProperty objects
+            </summary>
+            <param name="commaSeparated"></param>
+            <param name="boost"></param>
+            <param name="fuzzy"></param>
+            <param name="wildcard"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Helpers.XsltSearchHelper.AddSummaryProperties(Dragonfly.FullTextSearch.HighlightTools.SummarizerParameters,System.String,System.String,System.Double,System.Boolean)">
+            <summary>
+            Add a list of properties to use in summary text/body to supplied SummarizerParameters object
+            </summary>
+            <param name="summaryParameters"></param>
+            <param name="titleLinkProperties"></param>
+            <param name="summaryProperties"></param>
+            <param name="fuzzieness"></param>
+            <param name="wildcard"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Helpers.XsltSearchHelper.GetSearchProperties(System.String,System.String,System.Double,System.Boolean)">
+            <summary>
+            private function, called by Search to populate a list of umbraco properties to pass to the Search class
+            </summary>
+            <param name="titleProperties"></param>
+            <param name="bodyProperties"></param>
+            <param name="fuzzieness"></param>
+            <param name="wildcard"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Helpers.XsltSearchHelper.GetRootNotes(System.String)">
+            <summary>
+            called by Search to get a list of the root nodes from the passed string
+            </summary>
+            <param name="rootNodes">Comma separated string from XSLT</param>
+            <returns>List of integers</returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Helpers.XsltSearchHelper.ResultsAsXml(Examine.ISearchResults,Dragonfly.FullTextSearch.HighlightTools.Summarizer,System.Int32,System.Int32,System.Diagnostics.Stopwatch)">
+            <summary>
+            Take ISearchResults from examine, create title and body summary, and convert to an XML document
+            This is broadly based off the same function in the Examine codebase, the XML it returns should be 
+            broadly compatible, that seems best...
+            </summary>
+            <returns>XPathNodeIterator to return to Umbraco XSLT foreach</returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Helpers.XsltSearchHelper.ReturnError(System.String,System.String)">
+            <summary>
+            Quick function to return errors to XSLT to be handled there
+            </summary>
+            <param name="shortMessage">A code that can be checked for in the XSLT and replaced with appropriate dictionary entry</param>
+            <param name="longMessage">Some text that will be used if dictionary entry is not available/for debugging</param>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Helpers.XsltSearchHelper.StringFormatInternal(System.String,System.String[])">
+            <summary>
+            This is budget. But params are not supported by MS XSLT, so we create a real method and a bunch of overloads. 
+            As far as I'm aware, no, there isn't any way of doing this that is less painful and ugly
+            than, say, root canal without anasthetic performed by the elephant man.
+            </summary>
+            <param name="Format"></param>
+            <param name="Args"></param>
+            <returns></returns>
+        </member>
+        <member name="T:Dragonfly.FullTextSearch.Extensions.SearchHelper">
+            <summary>
+            Retrieve search results as SearchResultsCollection for users to use in their own Razor 
+            </summary>
+        </member>
+        <member name="E:Dragonfly.FullTextSearch.Extensions.SearchHelper.ResultOutput">
+            <summary>
+            Quick and simple static event to allow users to modify search results
+            before they are output
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Extensions.SearchHelper.Search(System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.Int32,System.Int32,System.Int32,System.Int32,System.String,System.Int32,System.Int32)">
+            <summary>
+            Main Helper Search function, the laundry list of parameters are documented more fully in FullTextSearch.xslt
+            Basically this constructs a search object and a highlighter object from the parameters, then calls another 
+            function to return search results as SearchResultsCollection.
+            </summary>
+            <param name="SearchType">MultiRelevance, MultiAnd, etc.</param>
+            <param name="SearchTerm">The search terms as entered by user</param>
+            <param name="TitleProperties">A list of umbraco properties, comma separated, to be searched as the page title</param>
+            <param name="BodyProperties">A list of umbraco properties, comma separated, to be searched as the page body</param>
+            <param name="RootNodes">Return only results under these nodes, set to blank or -1 to search all nodes</param>
+            <param name="TitleLinkProperties">Umbraco properties, comma separated, to use in forming the (optionally highlighted) title</param>
+            <param name="SummaryProperties">Umbraco properties, comma separated, to use in forming the (optionally highlighted) summary text</param>
+            <param name="UseHighlighting">Enable context highlighting(note this can slow things down)</param>
+            <param name="SummaryLength">Number of characters in the summary text</param>
+            <param name="PageNumber">Page number of results to return</param>
+            <param name="PageLength">Number of results on each page, zero disables paging and returns all results</param>
+            <param name="Fuzzieness">Amount 0-1 to "fuzz" the search, return non exact matches</param>
+            <param name="Wildcard">Add wildcard to the end of search term. Doesn't work together with fuzzyness</param>
+            <param name="AlternateSpellingSuggestions">If the AlternateSpellings Index is set up, the number of alternates to return (0 to disable)</param>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Extensions.SearchHelper.SearchAnotherTerm(Dragonfly.FullTextSearch.Models.SearchResultsCollection,System.String,System.String,System.Int32,System.Int32)">
+            <summary>
+            Add additional search results to a collection (to pass in an alternate search term, for instance)
+            </summary>
+            <param name="CurrentResultsCollection"></param>
+            <param name="SearchType"></param>
+            <param name="SearchTerm"></param>
+            <param name="UseHighlighting"></param>
+            <param name="PageNumber"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Extensions.SearchHelper.UpdateWithResults(Dragonfly.FullTextSearch.Models.SearchResultsCollection,Examine.ISearchResults,System.Int32,System.Diagnostics.Stopwatch)">
+            <summary>
+            Take ISearchResults from examine, create title and body summary, and update SearchResultsCollection
+            </summary>
+            <param name="ResultsCollection">
+            The Results Collection.
+            </param>
+            <param name="SearchResults">
+            The search Results.
+            </param>
+            <param name="summariser">
+            The summarizer.
+            </param>
+            <param name="PageNumber">
+            The page Number.
+            </param>
+            <param name="pageLength">
+            The page Length.
+            </param>
+            <param name="Stopwatch">
+            The stopwatch.
+            </param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Extensions.SearchHelper.UpdateAlternateResults(Dragonfly.FullTextSearch.Models.AlternateSpellingsInfo,Examine.ISearchResults,Dragonfly.FullTextSearch.HighlightTools.Summarizer,System.Int32,System.Int32)">
+            <summary>
+            Take ISearchResults from examine, create title and body summary, and return a collection of SearchResultPages
+            </summary>
+            <param name="AltSearchResults">
+            Collection of search results.
+            </param>
+            <param name="AltSummarizer">
+            Summarizer to format results
+            </param>
+            <param name="PageNumber">
+            The current page Number
+            </param>
+            <param name="PageLength">
+            Num Results per page
+            </param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Extensions.SearchHelper.GetProperties(System.String,System.Double,System.Double,System.Boolean)">
+            <summary>
+            Split up the comma separated string and return a list of UmbracoProperty objects
+            </summary>
+            <param name="CommaSeparated"></param>
+            <param name="Boost"></param>
+            <param name="Fuzzy"></param>
+            <param name="Wildcard"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Extensions.SearchHelper.AddSummaryProperties(Dragonfly.FullTextSearch.HighlightTools.SummarizerParameters,System.String,System.String,System.Double,System.Boolean)">
+            <summary>
+            Add a list of properties to use in summary text/body to supplied SummarizerParameters object
+            </summary>
+            <param name="SummaryParameters"></param>
+            <param name="TitleLinkProperties"></param>
+            <param name="SummaryProperties"></param>
+            <param name="Fuzzieness"></param>
+            <param name="Wildcard"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Extensions.SearchHelper.GetSearchProperties(System.String,System.String,System.Double,System.Boolean)">
+            <summary>
+            private function, called by Search to populate a list of umbraco properties to pass to the Search class
+            </summary>
+            <param name="TitleProperties"></param>
+            <param name="BodyProperties"></param>
+            <param name="Fuzzieness"></param>
+            <param name="Wildcard"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Extensions.SearchHelper.GetRootNotes(System.String)">
+            <summary>
+            called by Search to get a list of the root nodes from the passed string
+            </summary>
+            <param name="RootNodes">Comma separated string from XSLT</param>
+            <returns>List of integers</returns>
+        </member>
+        <member name="T:Dragonfly.FullTextSearch.HighlightTools.Highlight">
+            <summary>
+            Retrieve summary (the title link and the bit of context that goes under it) for search results
+            using Highlighter.net (part of lucene) to do context highlighting.
+            The class is instantiated once for every result set. 
+            </summary>
+        </member>
+        <member name="F:Dragonfly.FullTextSearch.HighlightTools.Highlight._analyzer">
+            <summary>
+            The highlighter will need to access lucene directly. 
+            These objects cache some state
+            </summary>
+        </member>
+        <member name="F:Dragonfly.FullTextSearch.HighlightTools.Highlight.HighlighterCache">
+            <summary>
+            This speeds up highlighting, we create the highlighter for each field once and cache it for
+            the whole results set.
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.HighlightTools.Highlight.GetSummary(Examine.SearchResult,System.String@)">
+            <summary>
+            Get the summary text for a given search result
+            </summary>
+            <param name="result"></param>
+            <param name="summary"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.HighlightTools.Highlight.GetTitle(Examine.SearchResult,System.String@)">
+            <summary>
+            Retrieve highlighted title
+            </summary>
+            <param name="Result"></param>
+            <param name="Title"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.HighlightTools.Highlight.LuceneHighlightField(Examine.SearchResult,Dragonfly.FullTextSearch.SearchTools.UmbracoProperty,System.String@)">
+            <summary>
+            highlight the search term in the supplied result
+            </summary>
+            <param name="Result"></param>
+            <param name="UmbracoProperty"></param>
+            <param name="Summary"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.HighlightTools.Highlight.QueryHighlight(Dragonfly.FullTextSearch.SearchTools.UmbracoProperty,System.Collections.Generic.List{System.String})">
+            <summary>
+            Construct the lucene query to feed to the highlighter
+            </summary>
+            <param name="UmbracoProperty"></param>
+            <param name="SearchTerms"></param>
+            <returns></returns>
+        </member>
+        <member name="T:Dragonfly.FullTextSearch.HighlightTools.Plain">
+            <summary>
+            Retrieve the summary info (title and summary text) for each search result. 
+            </summary>
+        </member>
+        <member name="P:Dragonfly.FullTextSearch.HighlightTools.SummarizerParameters.SearchTerm">
+            <summary>
+            The search terms as entered by the user
+            </summary>
+        </member>
+        <member name="P:Dragonfly.FullTextSearch.HighlightTools.SummarizerParameters.SearchProvider">
+            <summary>
+            The search provider as specified in the examine settings
+            </summary>
+        </member>
+        <member name="P:Dragonfly.FullTextSearch.HighlightTools.SummarizerParameters.TitleLinkProperties">
+            <summary>
+            Used for context highlighting of the title, a list of properties that form
+            the title of the page, in order of preference.
+            </summary>
+        </member>
+        <member name="P:Dragonfly.FullTextSearch.HighlightTools.SummarizerParameters.BodySummaryProperties">
+            <summary>
+            Used for context highlighting of the summary, a list of properties that form
+            the body of the page, in order of preference.
+            </summary>
+        </member>
+        <member name="P:Dragonfly.FullTextSearch.HighlightTools.SummarizerParameters.HighlightPreTag">
+            <summary>
+            The HTML to shove in front to of a word to highlight it
+            </summary>
+        </member>
+        <member name="P:Dragonfly.FullTextSearch.HighlightTools.SummarizerParameters.HighlightPostTag">
+            <summary>
+            closing tag 
+            </summary>
+        </member>
+        <member name="P:Dragonfly.FullTextSearch.HighlightTools.SummarizerParameters.SummaryLength">
+            <summary>
+            The length (in characters) of the summary/highlight text
+            </summary>
+        </member>
+        <member name="T:Dragonfly.FullTextSearch.Indexers.CacheIndexer">
+            <summary>
+            This is used when PublishEventRendering is active. HTML is just retrieved from the DB.
+            </summary>
+        </member>
+        <member name="T:Dragonfly.FullTextSearch.Indexers.DefaultIndexer">
+            <summary>
+            Default indexer class. Used for all indexers in this project
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Indexers.DefaultIndexer.NodeProcessor(Umbraco.Core.Models.IContent,System.Collections.Generic.Dictionary{System.String,System.String},System.Boolean@)">
+            <summary>
+            Fully process the current node, check whether to cancel indexing, check whether to index the node
+            retrieve the HTML and add it to the index. Then make a cup of tea. This is tiring. 
+            </summary>
+            <param name="currentContent"></param>
+            <param name="fields"></param>
+            <param name="cancelIndexing"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Indexers.DefaultIndexer.CheckCancelIndexing">
+            <summary>
+            Check whether to cancel indexing or not(generally if umbraco(Search/Navi/etc)Hide is set)
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Indexers.DefaultIndexer.IsIndexable">
+            <summary>
+            I'm pretty much assuming if we're here and we have a valid document object we should be
+            trying to index, 
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Indexers.DefaultIndexer.GetHtml(System.String@)">
+            <summary>
+            Get the actual HTML, we use the DefaultHttpRenderer here ususally, unless it's been overriden, 
+            in which case it should be noted that it should only be overriden by renderers using only the 
+            </summary>
+            <param name="fullHtml"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Indexers.DefaultIndexer.GetTextFromHtml(System.String@)">
+            <summary>
+            Use Html Tag stripper to get text from the passed HTML. Certain tags specified in the
+            config gile get removed entirely, head, script, possibly some relevant ids etc.
+            </summary>
+            <param name="fullHtml"></param>
+            <returns>Text to add to index</returns>
+        </member>
+        <member name="T:Dragonfly.FullTextSearch.Indexers.FullTextContentIndexer">
+            <summary>
+            We could probably just use the events built into the UmbracoContentIndexer for this, 
+            however, this is just a little easier to implement for certain things, though it uses 99% of
+            the functionality of the base class.
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Indexers.FullTextContentIndexer.#ctor">
+            <summary>
+            Default constructor
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Indexers.FullTextContentIndexer.#ctor(Examine.IIndexCriteria,System.IO.DirectoryInfo,UmbracoExamine.DataServices.IDataService,Lucene.Net.Analysis.Analyzer,System.Boolean)">
+            <summary>
+            Constructor to allow for creating an indexer at runtime
+            </summary>
+            <param name="indexerData"></param>
+            <param name="indexPath"></param>
+            <param name="dataService"></param>
+            <param name="analyzer"></param>
+            <param name="async"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Indexers.FullTextContentIndexer.AddDocument(System.Collections.Generic.Dictionary{System.String,System.String},Lucene.Net.Index.IndexWriter,System.Int32,System.String)">
+            <summary>
+            We override this method, do some checks and add some stuff and then just call the base method. 
+            We could do this from an event, but we want the full text renderer/retriever
+            to run before any other events we might choose to hook into NodeIndexing so users will find 
+            it easier to modify what's going on
+            </summary>
+            <param name="fields"></param>
+            <param name="writer"></param> 
+            <param name="nodeId"></param>
+            <param name="type"></param>
+        </member>
+        <member name="T:Dragonfly.FullTextSearch.Interfaces.IDocumentRenderer">
+            <summary>
+            Any class implementing this interface can register itself
+            as a renderer (retrieve HTML from umbraco to index/cache) for any or all 
+            node types using the Manager singleton. 
+            </summary>
+        </member>
+        <member name="T:Dragonfly.FullTextSearch.Interfaces.IFullTextIndexer">
+            <summary>
+            The Full text indexer retrieves the page HTML (either by using a renderer, or by retrieving from cache),
+            and adds it to the supplied fields dictionary to be stored in the lucene index.
+            setting cancelIndexing to true will prevent currentDocuemnt from being put into the index.
+            Any class implementing this interface can register itself as a fulltextindexer for any or all 
+            node types using the Manager singleton
+            </summary>
+        </member>
+        <member name="T:Dragonfly.FullTextSearch.Models.ResultOutputEventArgs">
+            <summary>
+            Allow modifying search results from code before they get sent to XSLT
+            </summary>
+        </member>
+        <member name="T:Dragonfly.FullTextSearch.Renderers.DefaultHttpRenderer">
+            <summary>
+            This can be used when the umbraco core is not active. 
+            it uses the Document object and HttpWebRequests to render HTML for nodes
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Renderers.DefaultHttpRenderer.Render(System.Int32,System.String@)">
+            <summary>
+            Render the contents of node at nodeId into string fullHtml
+            </summary>
+            <param name="nodeId"></param>
+            <param name="fullHtml"></param>
+            <returns>Bool indicating whether or not to store the result</returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Renderers.DefaultHttpRenderer.RetrieveHtml(System.String@)">
+            <summary>
+            Retrieves HTML for the current node using an HttpWebRequest
+            </summary>
+            <param name="fullHtml">string to fill with HTML</param>
+            <returns>success/failure</returns>
+        </member>
+        <member name="T:Dragonfly.FullTextSearch.Renderers.HttpPublishEventRenderer">
+            <summary>
+            This needs to be used when the umbraco core is active. It uses HttpWebReqeust and
+            the umbraco node factory to render HTML content for nodes
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Renderers.HttpPublishEventRenderer.RetrieveHtml(System.String@)">
+            <summary>
+            Retrieves HTML for the current node using an HttpWebRequest
+            </summary>
+            <param name="fullHtml">string to fill with HTML</param>
+            <returns>success/failure</returns>
+        </member>
+        <member name="T:Dragonfly.FullTextSearch.Renderers.ProgramaticRenderer">
+            <summary>
+            This needs to be used when the umbraco core is active. It uses the current
+            HTTP context, the node factory, and server.execute to render nodes for caching
+            It can be subclassed using document objects from outside the core easily enough though
+            see DefaultHttpRenderer
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Renderers.ProgramaticRenderer.Render(System.Int32,System.String@)">
+            <summary>
+            Render the contents of node at nodeId into string fullHtml
+            </summary>
+            <param name="nodeId"></param>
+            <param name="fullHtml"></param>
+            <returns>Bool indicating whether or not to store the result in the UmbracoFullText HTML cache</returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Renderers.ProgramaticRenderer.PageBelongsInIndex">
+            <summary>
+            Check whether this page should have the full text read for indexing
+            </summary>
+            <returns>true/false</returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Renderers.ProgramaticRenderer.IsDisallowedNodeType">
+            <summary>
+            check the node type of currentNode against those listed in the config file
+            to see if this page has full text indexing disabled
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Renderers.ProgramaticRenderer.IsSearchHideActive">
+            <summary>
+            Check the properties of currentNode against thost listed in the config file to see if this page
+            has been hidden from the search index
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Renderers.ProgramaticRenderer.RetrieveHtml(System.String@)">
+            <summary>
+            Calls our custom Rendertemplate, sets up some parameters to pass to the child page
+            </summary>
+        </member>
+        <member name="T:Dragonfly.FullTextSearch.SearchTools.Search">
+            <summary>
+            This class constructs the actual lucene query from a bunch of 
+            parameters and returns umbraco examine ISearchResults
+            </summary>
+        </member>
+        <member name="F:Dragonfly.FullTextSearch.SearchTools.Search.Parameters">
+            <summary>
+            There's a lot of parameters, this is the container object
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.SearchTools.Search.ResultsMultiRelevance">
+            <summary>
+            "multi relevance" search does the following... roughly
+            The index is searched for, in order of decreasing relevance
+            1) the exact phrase entered in any of the title properties
+            2) any of the terms entered in any of the title properties
+            3) a fuzzy match for any of the terms entered in any of the title properties
+            4) the exact phrase entered in any of the body properties
+            5) any of the terms entered in any of the body properties
+            6) a fuzzy match for any of the terms entered in any of the body properties
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.SearchTools.Search.ResultsMultiAnd">
+            <summary>
+            Execute a search requiring all terms in the query to be present, not necessarily in 
+            the order entered, though that will boost the relevance. Pretty much the same
+            as SearchMultiRelevance, except terms are AND'd rather than OR'd 
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.SearchTools.Search.ResultsSimpleOr">
+            <summary>
+            Simple search for any term in the query. Make this simpler so it executes faster
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.SearchTools.Search.ResultsAsEntered">
+            <summary>
+            Run a quoted query 
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.SearchTools.Search.WrapQuery(System.Text.StringBuilder)">
+            <summary>
+            prepend the query with the necessary queries for index type and root nodes
+            </summary>
+            <param name="toWrap">Query to wrap</param>
+            <returns>query</returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.SearchTools.Search.QueryRootNodes">
+            <summary>
+            Get the lucene query to pick out only nodes that have a parent in the list of root nodes
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.SearchTools.Search.QueryAllPropertiesOr(System.Collections.Generic.ICollection{System.String},System.Double)">
+            <summary>
+            OR's together all the passed search terms into a query
+            for each property in the properties list
+            
+            </summary>
+            <param name="searchTerms">A list of fully escaped search terms</param>
+            <param name="boostAll">all terms are boosted by this amount, multiplied by the amount in the property/boost dictionary</param>
+            <returns>a query fragment</returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.SearchTools.Search.QueryAllPropertiesAnd(System.Collections.Generic.ICollection{System.String},System.Double)">
+            <summary>
+            AND's together all the passed search terms into a query
+            for each property in the properties list
+            </summary>
+            <param name="searchTerms">A list of fully escaped search terms</param>
+            <param name="boostAll">all terms are boosted by this amount, multiplied by the amount in the property/boost dictionary</param>
+            <returns>a query fragment</returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.SearchTools.Search.QueryAllProperties(System.Collections.Generic.ICollection{System.String},System.Double,System.String,System.Boolean)">
+            <summary>
+            Called by queryAllPropertiesOr, queryAllPropertiesAnd
+            Creates a somewhat convuleted lucene query string.
+            Each search term is applied to each property in the umbracoProperties list, 
+            boosted by the boost value associated with the property, multiplied by
+            the boost value passed to the function. 
+            The global fuzziness level is applied, multiplied by the fuzzyness value 
+            associated with the relevant property.
+            Terms are ether OR'd or AND'd (or theoretically anything else
+            you stick into joinWith'd, though I can't think of much that would 
+            actually be useful) according to the contents of joinWith
+            </summary>
+            <param name="searchTerms">A list of fully escaped search terms</param>
+            <param name="boostAll">Boost all terms by this amount</param>
+            <param name="joinWith">Join terms with this string, should be AND/OR</param>
+            <param name="simplify"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.SearchTools.Search.ExecuteSearch(System.Text.StringBuilder)">
+            <summary>
+            Call Examine to execute the generated query
+            </summary> 
+            <param name="query">query to execute</param>
+            <returns>ISearchResults object or null</returns>
+        </member>
+        <member name="T:Dragonfly.FullTextSearch.SearchTools.SearchParameters">
+            <summary>
+            All the parameters needed by the Search class.
+            </summary>
+        </member>
+        <member name="P:Dragonfly.FullTextSearch.SearchTools.SearchParameters.SearchTerm">
+            <summary>
+            Search term, unescaped, as input by user
+            </summary>
+        </member>
+        <member name="P:Dragonfly.FullTextSearch.SearchTools.SearchParameters.RootNodes">
+            <summary>
+            Only show results which have this as a root node
+            </summary>
+        </member>
+        <member name="P:Dragonfly.FullTextSearch.SearchTools.SearchParameters.SearchProvider">
+            <summary>
+            Search provider, as defined in examinesettings.conf
+            </summary>
+        </member>
+        <member name="P:Dragonfly.FullTextSearch.SearchTools.SearchParameters.SearchProperties">
+            <summary>
+            List of properties to search, boost/fuzzy values to assign, 
+            </summary>
+        </member>
+        <member name="P:Dragonfly.FullTextSearch.SearchTools.SearchParameters.IndexTypes">
+            <summary>
+            Types of content to search, usually just "content"
+            </summary>
+        </member>
+        <member name="T:Dragonfly.FullTextSearch.SearchTools.SearchUtilities">
+            <summary>
+            Helper functions for search stuff
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.SearchTools.SearchUtilities.GetSearchTermsSplit(System.String)">
+            <summary>
+            split the search term into component parts, separate on space
+            acknowledge and use quoted queries entered by user, no other
+            special constructs (+- OR AND) handled
+            </summary>
+            <param name="searchTerm">the search term to split</param>
+            <returns>list of terms properly escaped</returns> 
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.SearchTools.SearchUtilities.GetSearchTermQuoted(System.String)">
+            <summary>
+            Return the quoted and escaped search term as a list
+            </summary>
+            <param name="searchTerm"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.SearchTools.SearchUtilities.GetSearchTermEscaped(System.String)">
+            <summary>
+            Return the escaped search term as a list
+            </summary>
+            <param name="searchTerm"></param>
+            <returns></returns>
+        </member>
+        <member name="T:Dragonfly.FullTextSearch.SearchTools.UmbracoProperty">
+            <summary>
+            Some data indicating how to process a given document property from umbraco in search
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.DbAccess.GetRecord(System.Int32,System.String@)">
+            <summary>
+            Retrieve HTML from the database cache for the given node
+            </summary>
+            <param name="nodeId">Id of the node</param>
+            <param name="fullHtml">string to fill with HTML</param>
+            <returns>bool indicating success/failure</returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.DbAccess.UpdateRecord(System.Int32,System.String@)">
+            <summary>
+            Delete old record(if present) and add a new one
+            </summary>
+            <param name="nodeId">The ID of the node</param>
+            <param name="nodeHtml">The HTML generated when the page is viewed</param>
+            <returns>bool indicating success/failure</returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.DbAccess.AddRecord(System.Int32,System.String@)">
+            <summary>
+            Add a record to the database containing full HTML for given node
+            </summary>
+            <param name="nodeId">The ID of the node</param>
+            <param name="nodeHtml">The HTML generated when the page is viewed</param>
+            <returns>bool indicating success/failure</returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.DbAccess.DeleteRecord(System.Int32)">
+            <summary>
+            Remove a record from the fullText cache.
+            </summary>
+            <param name="nodeId">the ID of the node to remove</param>
+            <returns>bool indicating success/failure</returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.DbAccess.NonQuery(System.String,System.Collections.Generic.Dictionary{System.String,System.Object})">
+            <summary>
+            Wrapper around umbraco's sqlHelper.ExecuteNonQuery that handles a few exceptions
+            </summary>
+            <param name="query">The SQL Query to execute</param>
+            <param name="parameters">Dictionary mapping parameter name to parameter value</param>
+            <returns>The number of rows affected, or -1 on failure</returns>
+        </member>
+        <member name="T:Dragonfly.FullTextSearch.Utilities.GenericFactory`1">
+            <summary>
+            Allows different classes implementing the same interfaces to be mapped to strings, 
+            the string passed to CreateNew then decides which implementation gets instantiated and 
+            passed back to the caller.
+            </summary>
+            <typeparam name="TInterface"></typeparam>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.GenericFactory`1.Register``1(System.String)">
+            <summary>
+            Register Class to be created when key is passed to CreateNew
+            </summary>
+            <typeparam name="TClass">Any Class Implementing Interface</typeparam>
+            <param name="key">the string to identify Class by</param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.GenericFactory`1.RegisterDefault``1">
+            <summary>
+            Register the class that will be returned when no string "key" is found
+            in the dictionary by CreateNew
+            </summary>
+            <typeparam name="TClass">Any Class Implementing Interface</typeparam>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.GenericFactory`1.CreateNew(System.String)">
+            <summary>
+            Instanciate the class regestered for key and return the object.
+            return a default class if key is not found in the dictionary
+            </summary>
+            <param name="key"></param>
+            <returns></returns>
+        </member>
+        <member name="T:Dragonfly.FullTextSearch.Utilities.HtmlStrip">
+            <summary>
+            Uses HTML agility pack to do custom tag stripping
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.HtmlStrip.#ctor">
+            <summary>
+            Default constructor, set up sane values
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.HtmlStrip.#ctor(System.String[],System.String[],System.Boolean)">
+            <summary>
+            Overloaded Constructor, allows specifying which tags get stripped
+            </summary>
+            <param name="tagsToStripContentsOf">an array of tags the FULL contents of which will be removed, not just the tags themselves</param>
+            <param name="idsToStripContentsOf">an array of HTML element IDs to fully remove</param>
+            <param name="continueOnAgilityException"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.HtmlStrip.TextFromHtml(System.String@)">
+            <summary>
+            Strips HTML according to the parameters set in the constructor
+            </summary>
+            <param name="fullHtml">HTML to strip</param>
+            <returns>Text</returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.HtmlStrip.AgilityTagStrip(System.String)">
+            <summary>
+            Run a tag stripper based on the HTML Agility pack
+            </summary>
+            <param name="fullHtml">Html to strip</param>
+            <returns>Text. Hopefully.</returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.Library.HttpRenderNode(System.Int32,System.Collections.Generic.Dictionary{System.String,System.String},System.String@)">
+            <summary>
+            Use Http Web Requests to render a node to a string
+            </summary>
+            <remarks>
+            this calls Umbraco's default.aspx rather than attempt to figure out
+            the standard umbraco "nice" url. Simply because we can't get the
+            nice URL without a valid Http Context in the first place. Also, 
+            the query string we pass to the client page in RenderTemplate
+            is replaced with a cookie here, simply because adding items
+            to the query string for default.aspx doesn't actually make
+            them visible to the page being rendered. Grrrrrrr. 
+            </remarks>
+            <param name="pageId"></param>
+            <param name="cookieDictionary"></param>
+            <param name="fullHtml"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.Library.RenderTemplate(System.Int32,System.Int32,System.Collections.Generic.Dictionary{System.String,System.String})">
+            <summary>
+            RenderTemplate, shamelessly lifted from the umbraco library and modified
+            to avoid passing the contents of request.form to the child page, and instead pass
+            some parameters of our choice
+            </summary>
+            <param name="pageId">Page ID</param>
+            <param name="templateId"></param>
+            <param name="queryStringCollection">query strings to pass to child page</param>
+            <returns>The page output HTML</returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.Library.UpdateLocalContextItems(System.Collections.IDictionary,System.Web.HttpContext)">
+            <summary>
+            From umbraco library
+            </summary>
+            <param name="items"></param>
+            <param name="context"></param>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.Library.GetCurrentContextItems">
+            <summary>
+            From umbraco library
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.Library.QueryStringBuilder(System.Collections.Generic.Dictionary{System.String,System.String})">
+            <summary>
+            build a query string from a dictionary
+            </summary>
+            <param name="queryStringCollection"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.Library.SetTimeout(System.String)">
+            <summary>
+            Given a string (from config) denoting number of minutes, set HTTP timout
+            to the proper number of sectonds
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.Library.IsSearchDisabledByProperty(System.Object)">
+            <summary>
+            We need to be able to check whether a given Node object, or Document object, dependent on 
+            where this is called from, has a property listed in DisableSearchPropertyNames in the config
+            file set to true
+            </summary>
+            <param name="contentObject">Must be type Document or type Node</param>
+            <returns>bool indicating whether this property exists and is enabled</returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.Library.IsSearchDisabledByMissingTemplate(System.Object)">
+            <summary>
+            We need to be able to check whether a given Node object, or Document object, dependent on 
+            where this is called from, does not have a template assigned.
+            </summary>
+            <param name="contentObject">Must be type Document or type Node</param>
+            <returns>bool indicating whether this property exists and is enabled</returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.Library.GetQueryStringCollection">
+            <summary>
+            Gets the name of the query string variable to pass to rendered pages from the config, and sticks it
+            into a dictionary. Hardly needs it's own method, but it's used in a few places so...
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.Utilities.Library.IsCritical(System.Exception)">
+            <summary>
+            There are some places in the code where we swallow more exceptions
+            than is perhaps generally good practice. This is esentially because
+            the indexer has a nasty habbit of dumping out and requiring an app 
+            pool recycle if we don't do this... 
+            This lets us rethrow the most critical exception types
+            </summary>
+            <param name="ex">The Exception</param>
+            <returns>true on critical exception</returns>
+        </member>
+        <member name="P:Dragonfly.FullTextSearch.Utilities.Manager.Instance">
+            <summary>
+            singleton
+            </summary>
+        </member>
+        <member name="M:Dragonfly.FullTextSearch.WebApi.FullTextApiController.RebuildFullTextIndex">
+            <summary>
+            Rebuild the entire full text index.
+            </summary>
+            GET: /umbraco/api/fulltextapi/rebuildfulltextindex
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Dragonfly.FullTextSearch.WebApi.FullTextApiController.ReindexFullTextNodes(System.Int32[])" -->
+        <member name="M:Dragonfly.FullTextSearch.WebApi.FullTextApiController.ReindexAllFullTextNodes">
+            <summary>
+            Re-index all nodes in the full text index, but do not delete and rebuld
+            the entire index as with RebuildFullTextIndex
+            </summary>
+            GET: /umbraco/api/fulltextapi/reindexallfulltextnodes
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Dragonfly.FullTextSearch.WebApi.FullTextApiController.ReindexFullTextNodesAndChildren(System.Int32[])" -->
+    </members>
+</doc>
