@@ -1,22 +1,21 @@
 ﻿namespace Dragonfly.FullTextSearch.Utilities
 {
+    using global::Umbraco.Core.Configuration;
     using System;
+    using System.Collections;
     using System.Collections.Generic;
     using System.Configuration;
     using System.Globalization;
+    using System.IO;
     using System.Linq;
+    using System.Net;
+    using System.Text;
     using System.Web;
     using System.Web.UI;
-    using Umbraco.Core.Logging;
     using umbraco;
-    using System.Text;
-    using System.IO;
-    using System.Collections;
     using umbraco.NodeFactory;
-    using System.Net;
+    using Umbraco.Core.Logging;
     using Umbraco.Core.Models;
-
-    using global::Umbraco.Core.Configuration;
 
     public class Library
     {
@@ -81,37 +80,120 @@
                 webRequest.CookieContainer = container;
             }
 
+            var ipTest = GetRequestingIp();
+            //var ipTest = GetRequestingIp(webRequest);
+            //var ipTest2 = GetIpAddress();
+            LogHelper.Debug(typeof(Library), $"FullTextIndexing: Library.HttpRenderNode for {webRequest.RequestUri.AbsoluteUri} from IP {ipTest}...");
+
             try
             {
-                using (HttpWebResponse webResponse = (HttpWebResponse)webRequest.GetResponse())
-                {
-                    using (Stream objStream = webResponse.GetResponseStream())
-                    {
-                        using (StreamReader objReader = new StreamReader(objStream))
-                        {
-                            fullHtml = objReader.ReadToEnd();
-                            objReader.Close();
-                        }
-
-                        objStream.Flush();
-                        objStream.Close();
-                    }
-
-                    webResponse.Close();
-                    return true;
-                }
+                var result = TryRequest(webRequest, out fullHtml);
+                return result;
             }
             catch (WebException ex)
             {
-                var msg = string.Format("HTTP error in FullTextSearch retrieval for node #{0}", pageId);
-                LogHelper.Error(typeof(Library), msg, ex);
-                fullHtml = string.Empty;
+                if (ex.Message.Contains("401"))
+                {
+                    var ip = GetRequestingIp();
+                    try
+                    {
+                        //try a different address
+                        webRequest.ServicePoint.BindIPEndPointDelegate = delegate { return new IPEndPoint(IPAddress.Parse(ip), 0); };
+                        var result = TryRequest(webRequest, out fullHtml);
+                        return result;
+                    }
+                    catch (Exception eIp)
+                    {
+                        //Didn't work, log error
+                        var msg2 = $"FullTextIndexing: Library.HttpRenderNode - HTTP error on retrieval for node #{pageId} accessing URL '{webRequest.RequestUri.AbsoluteUri}' using IP {ip}";
+                        LogHelper.Error(typeof(Library), msg2, eIp);
+                        fullHtml = string.Empty;
+                    }
+                }
+                else
+                {   //Some other error, just log it
+                    var msg =$"FullTextIndexing: Library.HttpRenderNode - HTTP error on retrieval for node #{pageId} accessing URL '{webRequest.RequestUri.AbsoluteUri}'";
+                    LogHelper.Error(typeof(Library), msg, ex);
+                    fullHtml = string.Empty;
+                }
             }
             finally
             {
                 webRequest.Abort();
             }
             return false;
+        }
+
+        private static bool TryRequest(HttpWebRequest WebRequest, out string FullHtml)
+        {
+            using (HttpWebResponse webResponse = (HttpWebResponse)WebRequest.GetResponse())
+            {
+                using (Stream objStream = webResponse.GetResponseStream())
+                {
+                    using (StreamReader objReader = new StreamReader(objStream))
+                    {
+                        FullHtml = objReader.ReadToEnd();
+                        objReader.Close();
+                    }
+
+                    objStream.Flush();
+                    objStream.Close();
+                }
+
+                webResponse.Close();
+                return true;
+            }
+        }
+
+        private static string GetRequestingIp(HttpWebRequest WebRequest)
+        {
+            IPEndPoint remoteEP = null;
+
+            WebRequest.ServicePoint.BindIPEndPointDelegate = delegate (ServicePoint servicePoint, IPEndPoint remoteEndPoint, int retryCount)
+            {
+                remoteEP = remoteEndPoint;
+                return null;
+            };
+            WebRequest.GetResponse();
+            return remoteEP.Address.ToString();
+        }
+
+        private static string GetRequestingIp()
+        {
+            IPEndPoint remoteEP = null;
+            HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create("http://www.google.com");
+            req.ServicePoint.BindIPEndPointDelegate = delegate (ServicePoint servicePoint, IPEndPoint remoteEndPoint, int retryCount)
+            {
+                remoteEP = remoteEndPoint;
+                return null;
+            };
+            req.GetResponse();
+            return remoteEP.Address.ToString();
+        }
+
+        private static string GetIpAddress()
+        {
+            System.Web.HttpContext context = System.Web.HttpContext.Current;
+            if (context != null)
+            {
+                string ipAddress = context.Request.ServerVariables["HTTP_X_FORWARDED_FOR"];
+
+                if (!string.IsNullOrEmpty(ipAddress))
+                {
+                    string[] addresses = ipAddress.Split(',');
+                    if (addresses.Length != 0)
+                    {
+                        return addresses[0];
+                    }
+                }
+
+                var remoteAdd = context.Request.ServerVariables["REMOTE_ADDR"];
+                return remoteAdd != null ? remoteAdd : "";
+            }
+            else
+            {
+                return "";
+            }
         }
 
         /// <summary>

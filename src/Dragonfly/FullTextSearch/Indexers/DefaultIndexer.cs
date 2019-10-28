@@ -93,20 +93,22 @@
             return path;
         }
         /// <summary>
-        /// Get the actual HTML, we use the DefaultHttpRenderer here ususally, unless it's been overriden, 
+        /// Get the actual HTML, we use the DefaultHttpRenderer here usually, unless it's been overriden, 
         /// in which case it should be noted that it should only be overriden by renderers using only the 
         /// </summary>
         /// <param name="fullHtml"></param>
         /// <returns></returns>
         protected virtual bool GetHtml(out string fullHtml)
         {
+            LogHelper.Debug<DefaultIndexer>($"FullTextIndexing: DefaultIndexer.GetHtml() for {CurrentContent.Name} [{CurrentContent.Id}]...");
+
             var renderer = Manager.Instance.DocumentRendererFactory.CreateNew(CurrentContent.ContentType.Alias);
             return renderer.Render(CurrentContent.Id, out fullHtml);
         }
 
         /// <summary>
         /// Use Html Tag stripper to get text from the passed HTML. Certain tags specified in the
-        /// config gile get removed entirely, head, script, possibly some relevant ids etc.
+        /// config file get removed entirely, head, script, possibly some relevant ids etc.
         /// </summary>
         /// <param name="fullHtml"></param>
         /// <returns>Text to add to index</returns>

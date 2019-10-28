@@ -1,0 +1,62 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net45</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <Copyright>Heather Floyd [www.HeatherFloyd.com]</Copyright>
+    <RepositoryType>GIT</RepositoryType>
+    <Authors>Heather Floyd</Authors>
+    <Company></Company>
+    <Product>Dragonfly</Product>
+    <Description>Lucene-based Full-text Search Indexing for Umbraco websites.</Description>
+    <PackageLicenseUrl>https://github.com/hfloyd/Dragonfly.FullTextSearch/blob/master/LICENSE.md</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/hfloyd/Dragonfly.FullTextSearch</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/hfloyd/Dragonfly.FullTextSearch</RepositoryUrl>
+    <PackageId>Dragonfly.FullTextSearch</PackageId>
+    <AssemblyName>Dragonfly.FullTextSearch</AssemblyName>
+    <PackageTags>Umbraco, Lucene, Examine</PackageTags>
+    <Version>0.1.6</Version>
+    <PackageReleaseNotes>Additional Debug logging added</PackageReleaseNotes>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DocumentationFile>C:\Users\Heather\NAS Folders\Active Projects\Webs\~Code Projects\Dragonfly\Dragonfly.UmbracoFullTextSearch\src\Dragonfly\Dragonfly.FullTextSearch.xml</DocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Dragonfly.Net" Version="1.13.2" />
+    <PackageReference Include="Dragonfly.Umbraco7" Version="2.1.6" />
+    <PackageReference Include="Lucene.Net" Version="2.9.4.1" />
+    <PackageReference Include="Lucene.Net.Contrib" Version="2.9.4.1" />
+    <PackageReference Include="UmbracoCms.Core" Version="7.14.0" PrivateAssets="All" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Extensions" />
+  </ItemGroup>
+  <ItemGroup>
+    <!--<Content Include="readme.txt">
+      <Pack>true</Pack>
+      <PackagePath>\</PackagePath>
+    </Content>-->
+    <Content Include="Views/**/*.*">
+      <Pack>true</Pack>
+      <BuildAction>Content</BuildAction>
+      <IncludeInPackage>true</IncludeInPackage>
+      <CopyToOutput>true</CopyToOutput>
+    </Content>
+    <Content Include="Config/**/*.*">
+      <Pack>true</Pack>
+      <BuildAction>Content</BuildAction>
+      <IncludeInPackage>true</IncludeInPackage>
+      <CopyToOutput>true</CopyToOutput>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="Views/Web.config" />
+  </ItemGroup>
+  <Import Project="..\Custom.targets" />
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="XCOPY /y &quot;$(TargetDir)$(TargetName)*.*&quot; &quot;C:\Users\Heather\NAS Folders\Active Projects\Webs\Clients\LOYD\American Regent\sourcecode\AmericanRegent.Web\bin&quot;" />
+  </Target>
+</Project>

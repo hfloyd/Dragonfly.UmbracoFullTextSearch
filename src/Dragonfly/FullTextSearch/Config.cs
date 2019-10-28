@@ -58,13 +58,17 @@
                 return _singleCache[key];
             key = Regex.Replace(key, @"[^A-Za-z0-9_\-]", string.Empty);
             var node = config.SelectSingleNode("/FullTextSearch/" + key);
+
             if (node != null)
             {
                 _singleCache.Add(key, node.InnerText);
                 return node.InnerText;
             }
-            _singleCache.Add(key, string.Empty);
-            return string.Empty;
+            else
+            {
+                _singleCache.Add(key, string.Empty);
+                return string.Empty;
+            }
         }
         /// <summary>
         /// Get a multi value key
