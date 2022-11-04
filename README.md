@@ -1,6 +1,6 @@
 # Dragonfly.UmbracoFullTextSearch #
 
-Lucene-based Full-text Search Indexing for Umbraco websites created by [Heather Floyd](https://www.HeatherFloyd.com) based on original code by [Governor Technology](https://archive.codeplex.com/?p=fulltextsearch)
+Lucene-based Full-text Search Indexing for Umbraco 7 websites created by [Heather Floyd](https://www.HeatherFloyd.com) based on original code by [Governor Technology](https://archive.codeplex.com/?p=fulltextsearch)
 
 ## Installation ##
 [![Nuget Downloads](https://buildstats.info/nuget/Dragonfly.UmbracoFullTextSearch)](https://www.nuget.org/packages/Dragonfly.UmbracoFullTextSearch/)
