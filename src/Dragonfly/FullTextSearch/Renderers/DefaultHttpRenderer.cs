@@ -40,7 +40,18 @@
             TemplateId = currentContent.Template.Id;
             CurrentNodeOrDocument = currentContent;
 
-            return PageBelongsInIndex() && this.RetrieveHtml(ref fullHtml);
+            var indexExclusionReason = "";
+            var indexIt = PageBelongsInIndex(out indexExclusionReason);
+            if (!indexIt)
+            {
+                
+                LogHelper.Info(GetType(), $"Content Node is excluded from Indexing: {indexExclusionReason}");
+                fullHtml = "";
+                return false;
+            }
+
+            //If we get here, retrieve the HTML
+            return this.RetrieveHtml(ref fullHtml);
         }
         /// <summary>
         /// Retrieves HTML for the current node using an HttpWebRequest

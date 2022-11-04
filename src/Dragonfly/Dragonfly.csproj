@@ -15,14 +15,14 @@
     <PackageId>Dragonfly.FullTextSearch</PackageId>
     <AssemblyName>Dragonfly.FullTextSearch</AssemblyName>
     <PackageTags>Umbraco, Lucene, Examine</PackageTags>
-    <Version>0.1.6</Version>
+    <Version>0.1.8</Version>
     <PackageReleaseNotes>Additional Debug logging added</PackageReleaseNotes>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DocumentationFile>C:\Users\Heather\NAS Folders\Active Projects\Webs\~Code Projects\Dragonfly\Dragonfly.UmbracoFullTextSearch\src\Dragonfly\Dragonfly.FullTextSearch.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Dragonfly.Net" Version="1.13.2" />
+    <PackageReference Include="Dragonfly.Net"  />
     <PackageReference Include="Dragonfly.Umbraco7" Version="2.1.6" />
     <PackageReference Include="Lucene.Net" Version="2.9.4.1" />
     <PackageReference Include="Lucene.Net.Contrib" Version="2.9.4.1" />
@@ -57,6 +57,6 @@
   </ItemGroup>
   <Import Project="..\Custom.targets" />
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="XCOPY /y &quot;$(TargetDir)$(TargetName)*.*&quot; &quot;C:\Users\Heather\NAS Folders\Active Projects\Webs\Clients\LOYD\American Regent\sourcecode\AmericanRegent.Web\bin&quot;" />
+    <Exec Command="REM XCOPY /y &quot;$(TargetDir)$(TargetName)*.*&quot; &quot;C:\x.Web\bin&quot;" />
   </Target>
 </Project>

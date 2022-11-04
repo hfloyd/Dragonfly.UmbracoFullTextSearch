@@ -693,6 +693,12 @@
             </summary>
             <returns>true/false</returns>
         </member>
+        <member name="M:Dragonfly.FullTextSearch.Renderers.ProgramaticRenderer.PageBelongsInIndex(System.String@)">
+            <summary>
+            Check whether this page should have the full text read for indexing
+            </summary>
+            <returns>true/false</returns>
+        </member>
         <member name="M:Dragonfly.FullTextSearch.Renderers.ProgramaticRenderer.IsDisallowedNodeType">
             <summary>
             check the node type of currentNode against those listed in the config file

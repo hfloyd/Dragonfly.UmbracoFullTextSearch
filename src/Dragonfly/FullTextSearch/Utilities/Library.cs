@@ -81,8 +81,6 @@
             }
 
             var ipTest = GetRequestingIp();
-            //var ipTest = GetRequestingIp(webRequest);
-            //var ipTest2 = GetIpAddress();
             LogHelper.Debug(typeof(Library), $"FullTextIndexing: Library.HttpRenderNode for {webRequest.RequestUri.AbsoluteUri} from IP {ipTest}...");
 
             try
@@ -92,30 +90,30 @@
             }
             catch (WebException ex)
             {
-                if (ex.Message.Contains("401"))
-                {
-                    var ip = GetRequestingIp();
-                    try
-                    {
-                        //try a different address
-                        webRequest.ServicePoint.BindIPEndPointDelegate = delegate { return new IPEndPoint(IPAddress.Parse(ip), 0); };
-                        var result = TryRequest(webRequest, out fullHtml);
-                        return result;
-                    }
-                    catch (Exception eIp)
-                    {
-                        //Didn't work, log error
-                        var msg2 = $"FullTextIndexing: Library.HttpRenderNode - HTTP error on retrieval for node #{pageId} accessing URL '{webRequest.RequestUri.AbsoluteUri}' using IP {ip}";
-                        LogHelper.Error(typeof(Library), msg2, eIp);
-                        fullHtml = string.Empty;
-                    }
-                }
-                else
-                {   //Some other error, just log it
+                //if (ex.Message.Contains("401"))
+                //{
+                //    var ip = GetRequestingIp();
+                //    try
+                //    {
+                //        //try a different address
+                //        webRequest.ServicePoint.BindIPEndPointDelegate = delegate { return new IPEndPoint(IPAddress.Parse(ip), 0); };
+                //        var result = TryRequest(webRequest, out fullHtml);
+                //        return result;
+                //    }
+                //    catch (Exception eIp)
+                //    {
+                //        //Didn't work, log error
+                //        var msg2 = $"FullTextIndexing: Library.HttpRenderNode - HTTP error on retrieval for node #{pageId} accessing URL '{webRequest.RequestUri.AbsoluteUri}' using IP {ip}";
+                //        LogHelper.Error(typeof(Library), msg2, eIp);
+                //        fullHtml = string.Empty;
+                //    }
+                //}
+                //else
+                //{   //Some other error, just log it
                     var msg =$"FullTextIndexing: Library.HttpRenderNode - HTTP error on retrieval for node #{pageId} accessing URL '{webRequest.RequestUri.AbsoluteUri}'";
                     LogHelper.Error(typeof(Library), msg, ex);
                     fullHtml = string.Empty;
-                }
+                //}
             }
             finally
             {

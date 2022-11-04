@@ -31,7 +31,7 @@
                 return;
             CurrentContent = currentContent;
 
-            LogHelper.Debug<DefaultIndexer>($"FullTextIndexing: NodeProcessor for {CurrentContent.Name} [{currentContent.Id}]...");
+            LogHelper.Debug<DefaultIndexer>($"FullTextIndexing: NodeProcessor for {CurrentContent.Name} [{currentContent.Id}] STARTING...");
             string fullHtml;
             if (CheckCancelIndexing())
             {

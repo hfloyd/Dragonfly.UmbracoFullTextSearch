@@ -64,24 +64,48 @@
             CurrentNodeOrDocument = currentNode;
             return PageBelongsInIndex() && RetrieveHtml(ref fullHtml);
         }
+
         /// <summary>
         /// Check whether this page should have the full text read for indexing
         /// </summary>
         /// <returns>true/false</returns>
         protected virtual bool PageBelongsInIndex()
         {
+            var ExclusionReason = "";
+            return PageBelongsInIndex(out ExclusionReason);
+        }
+
+        /// <summary>
+        /// Check whether this page should have the full text read for indexing
+        /// </summary>
+        /// <returns>true/false</returns>
+        protected virtual bool PageBelongsInIndex(out string ExclusionReason)
+        {
             // only index nodes with a template
             if (TemplateId < 1)
+            {
+                ExclusionReason = "No Template";
                 return false;
+            }
 
             // check if the config specifies we shouldn't index this
             if (IsDisallowedNodeType())
             {
+                ExclusionReason = "Disallowed NodeType";
                 return false;
             }
+
             // or if there's a property (e.g. umbracoNaviHide)
             // that is keeping this page out of the index
-            return !IsSearchHideActive();
+            if(IsSearchHideActive())
+            {
+                ExclusionReason = "Search Hide Property is True";
+                return false;
+            }
+
+            //If we get here... Index It!
+            ExclusionReason = "";
+            return true;
         }
         /// <summary>
         /// check the node type of currentNode against those listed in the config file
